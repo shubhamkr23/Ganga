@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaflet Map - River Ganga with Cities</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            z-index: 0;
+        }
+
+        /* Popup box on the right */
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px); /* Adds the blur effect */
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 999; /* Higher z-index to ensure it's above the map */
+        }
+
+        .info-box h4 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- Info box with blur background and rounded corners -->
+    <div class="info-box">
+        <h4>River Ganga</h4>
+        <p>Explore the cities along the river.</p>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize the map and set its view to India's coordinates
+        var map = L.map('map').setView([23, 86], 6); // Focus on the Ganga and its cities
+
+        // Add OSM tile layer
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
+        osm.addTo(map);
+
+        // Coordinates for the cities along the Ganga River
+        var gangaSegments = [
+            { "coordinates": [[78.1642, 29.9457], [80.3319, 26.4499]], "color": "red" },      // Haridwar to Kanpur
+            { "coordinates": [[80.3319, 26.4499], [81.8463, 25.4358]], "color": "green" },    // Kanpur to Allahabad (Prayagraj)
+            { "coordinates": [[81.8463, 25.4358], [83.0087, 25.3176]], "color": "blue" },     // Allahabad to Varanasi
+            { "coordinates": [[83.0087, 25.3176], [83.9777, 25.5637]], "color": "orange" },   // Varanasi to Buxar
+            { "coordinates": [[83.9777, 25.5637], [85.1376, 25.5941]], "color": "purple" },   // Buxar to Patna
+            { "coordinates": [[85.1376, 25.5941], [86.9842, 25.2425]], "color": "yellow" },   // Patna to Bhagalpur
+            { "coordinates": [[86.9842, 25.2425], [87.8377, 22.6436]], "color": "pink" },     // Bhagalpur to Near Mayapur
+            { "coordinates": [[87.8377, 22.6436], [88.3639, 22.5726]], "color": "brown" }     // Near Mayapur to Kolkata
+        ];
+
+        // Add the river segments to the map with different colors
+        gangaSegments.forEach(function (segment) {
+            L.geoJSON({
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": segment.coordinates
+                }
+            }, {
+                style: function (feature) {
+                    return { color: segment.color, weight: 6 };
+                }
+            }).addTo(map);
+        });
+
+    </script>
+</body>
+
+</html>
