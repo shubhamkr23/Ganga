@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaflet Map - River Ganga with Cities</title>
+    <title>Forecast Ganga River Water Quality</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -13,6 +13,7 @@
         body {
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
         }
 
         #map {
@@ -22,31 +23,53 @@
             z-index: 0;
         }
 
-        /* Popup box on the right */
+        /* Info box styles */
         .info-box {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 200px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.8);
+            width: 250px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px); /* Adds the blur effect */
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            display: none; /* Hidden initially */
             z-index: 999; /* Higher z-index to ensure it's above the map */
+            transition: all 0.3s ease-in-out;
         }
 
         .info-box h4 {
             margin: 0 0 10px;
-            font-size: 18px;
+            font-size: 20px;
             color: #333;
         }
 
         .info-box p {
-            margin: 0;
+            margin: 5px 0;
             font-size: 14px;
-            color: #666;
+            color: #555;
+        }
+
+        .info-box .data-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        .info-box .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .info-box .data-row span {
+            font-weight: bold;
+        }
+
+        /* Default info box */
+        .default-info-box {
+            display: block;
         }
     </style>
 </head>
@@ -54,10 +77,10 @@
 <body>
     <div id="map"></div>
 
-    <!-- Info box with blur background and rounded corners -->
-    <div class="info-box">
-        <h4>River Ganga</h4>
-        <p>Explore the cities along the river.</p>
+    <!-- Default info box (shown when no segment is selected) -->
+    <div class="info-box default-info-box" id="default-info-box">
+        <h4>Real-time Ganga River Water Quality</h4>
+        <p>Select a river segment to view more information.</p>
     </div>
 
     <!-- Leaflet JS -->
@@ -65,7 +88,7 @@
 
     <script>
         // Initialize the map and set its view to India's coordinates
-        var map = L.map('map').setView([23, 86], 6); // Focus on the Ganga and its cities
+        var map = L.map('map').setView([25, 80], 5); // Focus on the Ganga and its cities
 
         // Add OSM tile layer
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -73,21 +96,84 @@
         });
         osm.addTo(map);
 
-        // Coordinates for the cities along the Ganga River
+        // Variable to store the last clicked segment and info box
+        var lastClickedLayer = null;
+        var lastVisibleBox = null;
+
+        // Coordinates for the cities along the Ganga River with detailed segment info
         var gangaSegments = [
-            { "coordinates": [[78.1642, 29.9457], [80.3319, 26.4499]], "color": "red" },      // Haridwar to Kanpur
-            { "coordinates": [[80.3319, 26.4499], [81.8463, 25.4358]], "color": "green" },    // Kanpur to Allahabad (Prayagraj)
-            { "coordinates": [[81.8463, 25.4358], [83.0087, 25.3176]], "color": "blue" },     // Allahabad to Varanasi
-            { "coordinates": [[83.0087, 25.3176], [83.9777, 25.5637]], "color": "orange" },   // Varanasi to Buxar
-            { "coordinates": [[83.9777, 25.5637], [85.1376, 25.5941]], "color": "purple" },   // Buxar to Patna
-            { "coordinates": [[85.1376, 25.5941], [86.9842, 25.2425]], "color": "yellow" },   // Patna to Bhagalpur
-            { "coordinates": [[86.9842, 25.2425], [87.8377, 22.6436]], "color": "pink" },     // Bhagalpur to Near Mayapur
-            { "coordinates": [[87.8377, 22.6436], [88.3639, 22.5726]], "color": "brown" }     // Near Mayapur to Kolkata
+            { 
+                "coordinates": [[78.1642, 29.9457], [80.3319, 26.4499]], 
+                "color": "blue", 
+                "info": "Haridwar to Kanpur", 
+                "data": { "water_level": "20m", "rainfall": "250mm", "temperature": "25°C", "bod": "3 mg/L", "do": "6 mg/L" } 
+            },
+            { 
+                "coordinates": [[80.3319, 26.4499], [81.8463, 25.4358]], 
+                "color": "blue", 
+                "info": "Kanpur to Allahabad (Prayagraj)", 
+                "data": { "water_level": "18m", "rainfall": "300mm", "temperature": "28°C", "bod": "4 mg/L", "do": "5 mg/L" } 
+            },
+            { 
+                "coordinates": [[81.8463, 25.4358], [83.0087, 25.3176]], 
+                "color": "blue", 
+                "info": "Allahabad to Varanasi", 
+                "data": { "water_level": "19m", "rainfall": "220mm", "temperature": "27°C", "bod": "3.5 mg/L", "do": "5.5 mg/L" } 
+            },
+            { 
+                "coordinates": [[83.0087, 25.3176], [83.9777, 25.5637]], 
+                "color": "orange", 
+                "info": "Varanasi to Buxar", 
+                "data": { "water_level": "22m", "rainfall": "280mm", "temperature": "26°C", "bod": "4 mg/L", "do": "6 mg/L" } 
+            },
+            { 
+                "coordinates": [[83.9777, 25.5637], [85.1376, 25.5941]], 
+                "color": "blue", 
+                "info": "Buxar to Patna", 
+                "data": { "water_level": "21m", "rainfall": "270mm", "temperature": "25°C", "bod": "3.8 mg/L", "do": "5.8 mg/L" } 
+            },
+            { 
+                "coordinates": [[85.1376, 25.5941], [86.9842, 25.2425]], 
+                "color": "blue", 
+                "info": "Patna to Bhagalpur", 
+                "data": { "water_level": "23m", "rainfall": "300mm", "temperature": "29°C", "bod": "3.6 mg/L", "do": "6 mg/L" } 
+            },
+            { 
+                "coordinates": [[86.9842, 25.2425], [87.8377, 22.6436]], 
+                "color": "red", 
+                "info": "Bhagalpur to Near Mayapur", 
+                "data": { "water_level": "20m", "rainfall": "310mm", "temperature": "28°C", "bod": "4.2 mg/L", "do": "5 mg/L" } 
+            },
+            { 
+                "coordinates": [[87.8377, 22.6436], [88.3639, 22.5726]], 
+                "color": "orange", 
+                "info": "Near Mayapur to Kolkata", 
+                "data": { "water_level": "18m", "rainfall": "320mm", "temperature": "30°C", "bod": "3.7 mg/L", "do": "5.5 mg/L" } 
+            }
         ];
 
-        // Add the river segments to the map with different colors
-        gangaSegments.forEach(function (segment) {
-            L.geoJSON({
+        // Create unique info boxes for each segment with additional information
+        gangaSegments.forEach(function (segment, index) {
+            var infoBox = document.createElement('div');
+            infoBox.classList.add('info-box');
+            infoBox.setAttribute('id', 'info-box-' + index);
+            infoBox.innerHTML = `
+                <h4>${segment.info}</h4>
+                <p>Detailed Information:</p>
+                <div class="data-section">
+                    <div class="data-row"><span>Water Level:</span> ${segment.data.water_level}</div>
+                    <div class="data-row"><span>Rainfall:</span> ${segment.data.rainfall}</div>
+                    <div class="data-row"><span>Temperature:</span> ${segment.data.temperature}</div>
+                    <div class="data-row"><span>BOD:</span> ${segment.data.bod}</div>
+                    <div class="data-row"><span>DO:</span> ${segment.data.do}</div>
+                </div>
+            `;
+            document.body.appendChild(infoBox);
+        });
+
+        // Add the river segments to the map with different colors and click event
+        gangaSegments.forEach(function (segment, index) {
+            var line = L.geoJSON({
                 "type": "Feature",
                 "geometry": {
                     "type": "LineString",
@@ -96,6 +182,33 @@
             }, {
                 style: function (feature) {
                     return { color: segment.color, weight: 6 };
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.on('click', function (e) {
+                        // If there is a previously clicked segment, reset its thickness
+                        if (lastClickedLayer) {
+                            lastClickedLayer.setStyle({ weight: 6 });
+                        }
+
+                        // Set the clicked segment's thickness to a higher value
+                        this.setStyle({ weight: 10 });
+
+                        // Store the currently clicked layer
+                        lastClickedLayer = this;
+
+                        // Hide the previous info box if it exists
+                        if (lastVisibleBox) {
+                            lastVisibleBox.style.display = 'none';
+                        }
+
+                        // Show the current info box
+                        var currentBox = document.getElementById('info-box-' + index);
+                        currentBox.style.display = 'block';
+                        lastVisibleBox = currentBox;
+
+                        // Hide the default info box
+                        document.getElementById('default-info-box').style.display = 'none';
+                    });
                 }
             }).addTo(map);
         });
